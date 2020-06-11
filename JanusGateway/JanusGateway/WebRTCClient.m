@@ -17,7 +17,8 @@
 static NSString * const kMediaStreamId = @"ARDAMS";
 
 
-NSString* kWebsocketServerURL = @"ws://101.201.141.179:9000/ws";
+//NSString* kWebsocketServerURL = @"ws://101.201.141.179:9000/ws";
+NSString* kWebsocketServerURL = @"ws://3.133.61.58:8188";
 
 @interface WebRTCClient () <WebRTCSignalingDelegate,WebRTCPeerDelegate>
 {

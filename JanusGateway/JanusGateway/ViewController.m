@@ -159,13 +159,26 @@ static uint64_t  ROOM = 1234;
 
 -(CGRect)videoViewFrame:(int)index
 {
+    __block float width = 0.0;
+    __block float height = 0.0 ;
+    __block float x = 0.0;
+    __block float y = 0.0;
+    dispatch_queue_t main = dispatch_get_main_queue();
+    dispatch_block_t block = ^
+                  {
+                     width = self.view.frame.size.width/2;
+                      height = width;
+                      x = (index%2) * width;
+                      y = (index/2) * width;
+                  };
+    if ([NSThread isMainThread])
+      block();
+    else
+      dispatch_sync(main, block);
     
-    float width = self.view.frame.size.width/2;
-    float height = width;
-    float x = (index%2) * width;
-    float y = (index/2) * width;
-    
+         
     return CGRectMake(x, y, width, height);
+    
 }
 
 #pragma delegate  
