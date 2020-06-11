@@ -29,8 +29,8 @@
 {
     self = [super init];
     _delegate = delegate;
-    _view = [[RTCEAGLVideoView alloc] init];
-    _view.delegate = self;
+//    _view = [[RTCEAGLVideoView alloc] init];
+//    _view.delegate = self;
     return self;
 }
 

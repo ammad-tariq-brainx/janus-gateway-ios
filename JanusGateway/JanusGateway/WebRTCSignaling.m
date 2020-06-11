@@ -21,9 +21,6 @@ static NSTimeInterval kXSPeerClientKeepaliveInterval = 10.0;
 @implementation WebRTCSignaling {
     NSString* _url;
     SRWebSocket *_socekt;
-    long sessionID;
-    long handleID;
-    NSString *transaction;
     BOOL isCreated, isAttached, isRequested;
 }
 
@@ -83,7 +80,6 @@ static NSTimeInterval kXSPeerClientKeepaliveInterval = 10.0;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:message
                                                        options:NSJSONWritingPrettyPrinted // Pass 0 if you don't care about the readability of the generated string
                                                          error:&error];
-    
     if (! jsonData) {
         NSLog(@"Got an error: %@", error);
     } else {
@@ -96,9 +92,9 @@ static NSTimeInterval kXSPeerClientKeepaliveInterval = 10.0;
 {
     NSDictionary *message = @{
         @"janus": @"message",
-        @"session_id":[NSNumber numberWithLong:sessionID],
-        @"handle_id": [NSNumber numberWithLong:handleID],
-        @"transaction": transaction,
+        @"session_id":[NSNumber numberWithLong:_sessionID],
+        @"handle_id": [NSNumber numberWithLong:_handleID],
+        @"transaction": _transaction,
         @"body":@{
                 @"request":@"register",
                 @"username":@"sip:teTo1np1tt1PazHQAC7UuX2F@172.31.26.209",
@@ -138,8 +134,8 @@ NSString* randomString(NSInteger len){
 
 -(void)createJanus
 {
-    transaction = randomString(12);
-    NSDictionary *message = @{@"janus": @"create",@"transaction":transaction};
+    _transaction = randomString(12);
+    NSDictionary *message = @{@"janus": @"create",@"transaction": _transaction};
     
     NSError *error;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:message
@@ -161,8 +157,8 @@ NSString* randomString(NSInteger len){
     NSDictionary *message = @{
         @"janus":@"attach",
         @"plugin":@"janus.plugin.sip",
-        @"session_id": [NSNumber numberWithLong:sessionID],
-        @"transaction":transaction
+        @"session_id": [NSNumber numberWithLong:_sessionID],
+        @"transaction": _transaction
     };
     NSError *error;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:message
@@ -203,13 +199,13 @@ NSString* randomString(NSInteger len){
     if (!isCreated) {
         isCreated = true;
         NSDictionary * data = jsonObject[@"data"];
-        sessionID = [data[@"id"] longValue];
+        _sessionID = [data[@"id"] longValue];
         //[self makeSocketRequest];
         [self attachJanus];
     } else if (!isAttached) {
         isAttached = true;
         NSDictionary * data = jsonObject[@"data"];
-        handleID = [data[@"id"] longValue];
+        _handleID = [data[@"id"] longValue];
         [self makeSocketRequest];
     }
     
