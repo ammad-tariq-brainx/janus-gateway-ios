@@ -69,20 +69,20 @@ NSString* kWebsocketServerURL = @"ws://3.133.61.58:8188";
         [_localMediaStream addAudioTrack:_localAudioTrack];
     }
     
-    if (_localVideoTrack == nil) {
-        RTCAVFoundationVideoSource *videosource = [_peerConnectionFactory avFoundationVideoSourceWithConstraints:[self videoConstraints]];
-        
-        _localVideoTrack = [_peerConnectionFactory videoTrackWithSource:videosource trackId:@"Video"];
-        [_localMediaStream addVideoTrack:_localVideoTrack];
-        
-        _localPeer.localStream = _localMediaStream;
-        
-        [_localPeer.localStream.videoTracks[0] addRenderer:_localPeer.view];
-        
-        if ([_delegate respondsToSelector:@selector(client:didReceiveLocalVideo:)]) {
-            [_delegate client:self didReceiveLocalVideo:_localPeer];
-        }
-    }
+//    if (_localVideoTrack == nil) {
+//        RTCAVFoundationVideoSource *videosource = [_peerConnectionFactory avFoundationVideoSourceWithConstraints:[self videoConstraints]];
+//
+//        _localVideoTrack = [_peerConnectionFactory videoTrackWithSource:videosource trackId:@"Video"];
+//        [_localMediaStream addVideoTrack:_localVideoTrack];
+//
+//        _localPeer.localStream = _localMediaStream;
+//
+//        [_localPeer.localStream.videoTracks[0] addRenderer:_localPeer.view];
+//
+//        if ([_delegate respondsToSelector:@selector(client:didReceiveLocalVideo:)]) {
+//            [_delegate client:self didReceiveLocalVideo:_localPeer];
+//        }
+//    }
     
 }
 
@@ -163,9 +163,10 @@ NSString* kWebsocketServerURL = @"ws://3.133.61.58:8188";
 -(RTCConfiguration *) rtcConfiguration
 {
     RTCConfiguration* config = [[RTCConfiguration alloc] init];
-    RTCIceServer* server = [[RTCIceServer alloc] initWithURLStrings:@[@"stun:101.201.141.179:3478"]];
-    config.iceServers = @[server];
-    
+    RTCIceServer* server = [[RTCIceServer alloc] initWithURLStrings:@[@"stun:stun.l.google.com:19302"]];
+    RTCIceServer* server1 = [[RTCIceServer alloc] initWithURLStrings:@[@"turn:3.133.61.58:3478?transport=udp"] username:@"test" credential:@"test"];
+    RTCIceServer* server2 = [[RTCIceServer alloc] initWithURLStrings:@[@"turn:3.133.61.58:3478?transport=tcp"] username:@"test" credential:@"test"];
+    config.iceServers = @[server, server1, server2];
     config.continualGatheringPolicy = RTCContinualGatheringPolicyGatherContinually;
     
     // more config
@@ -177,7 +178,6 @@ NSString* kWebsocketServerURL = @"ws://3.133.61.58:8188";
     //NSDictionary *optional = @{@"VoiceActivityDetection":@"true"};
     NSDictionary *mandatoryConstraints = @{
                                            @"OfferToReceiveAudio":@"false",
-                                           @"OfferToReceiveVideo":@"false"
                                            };
     
     
@@ -194,7 +194,6 @@ NSString* kWebsocketServerURL = @"ws://3.133.61.58:8188";
 {
     NSDictionary *mandatoryConstraints = @{
                                            @"OfferToReceiveAudio":@"true",
-                                           @"OfferToReceiveVideo":@"true"
                                            };
     RTCMediaConstraints *constraints = [[RTCMediaConstraints alloc]
                                         initWithMandatoryConstraints:mandatoryConstraints
@@ -287,21 +286,41 @@ NSString* kWebsocketServerURL = @"ws://3.133.61.58:8188";
                 return;
             }
             
-            NSDictionary* message = @{
-                                      @"session":[NSNumber numberWithUnsignedLongLong:_session],
-                                      @"handle":[NSNumber numberWithUnsignedLongLong:_localPeer.handleID],
-                                      @"type":@"publish",
-                                      @"room": [NSNumber numberWithUnsignedLongLong:_room],
-                                      @"data":@{
-                                              @"media":@{@"audio":@TRUE,@"video":@TRUE},
-                                              @"sdp":@{
-                                                      @"type":@"offer",
-                                                      @"sdp":sdp.sdp,
-                                                      },
-                                              },
-                                      };
+//            NSDictionary* message = @{
+//                                      @"session":[NSNumber numberWithUnsignedLongLong:_session],
+//                                      @"handle":[NSNumber numberWithUnsignedLongLong:_localPeer.handleID],
+//                                      @"type":@"publish",
+//                                      @"room": [NSNumber numberWithUnsignedLongLong:_room],
+//                                      @"data":@{
+//                                              @"media":@{@"audio":@TRUE,@"video":@TRUE},
+//                                              @"sdp":@{
+//                                                      @"type":@"offer",
+//                                                      @"sdp":sdp.sdp,
+//                                                      },
+//                                              },
+//                                      };
             
-            [_signalingChannel sendMessage:message];
+            NSDictionary *messageUpdated = @{
+                @"janus": @"message",
+                @"session_id": [NSNumber numberWithUnsignedLongLong:_signalingChannel.sessionID],
+                @"handle_id": [NSNumber numberWithUnsignedLongLong:_signalingChannel.handleID],
+                @"transaction": _signalingChannel.transaction,
+                @"body": @{
+                    @"request": @"call",
+                    @"uri": @"sip:+923060450288@172.31.26.209",
+                    @"autoack": @false
+                },
+                @"jsep":@{
+                        @"type": @"offer",
+                        @"sdp":sdp.sdp,
+                }
+                
+            
+            };
+            
+            NSLog(@"Updated Message %@", messageUpdated);
+            
+            [_signalingChannel sendMessage:messageUpdated];
         }];
         
     }];
@@ -372,38 +391,38 @@ NSString* kWebsocketServerURL = @"ws://3.133.61.58:8188";
             return;
         }
         
-        [peer answerWithConstraints:[weakSelf answerConstraints] Block:^(RTCSessionDescription *sdp, NSError *error) {
-            
-            if(error!= nil){
-                NSLog(@"can not generate answer sdp %@", error);
-                return;
-            }
-            
-            [peer.peerconnection setLocalDescription:sdp completionHandler:^(NSError * _Nullable error) {
-                
-                if (error != nil) {
-                    NSLog(@"error can not set local answer %@", error);
-                    return;
-                }
-                
-                NSDictionary* message = @{
-                                          @"session":[NSNumber numberWithUnsignedLongLong:_session],
-                                          @"handle":[NSNumber numberWithUnsignedLongLong:peer.handleID],
-                                          @"type":@"subcribe",
-                                          @"room":[NSNumber numberWithUnsignedLongLong:_room],
-                                          @"data":@{
-                                                  @"sdp":@{
-                                                          @"type":@"answer",
-                                                          @"sdp":sdp.sdp,
-                                                          }
-                                                  },
-                                          };
-                
-                [_signalingChannel sendMessage:message];
-            
-            }];
-            
-        }];
+//        [peer answerWithConstraints:[weakSelf answerConstraints] Block:^(RTCSessionDescription *sdp, NSError *error) {
+//
+//            if(error!= nil){
+//                NSLog(@"can not generate answer sdp %@", error);
+//                return;
+//            }
+//
+//            [peer.peerconnection setLocalDescription:sdp completionHandler:^(NSError * _Nullable error) {
+//
+//                if (error != nil) {
+//                    NSLog(@"error can not set local answer %@", error);
+//                    return;
+//                }
+//
+//                NSDictionary* message = @{
+//                                          @"session":[NSNumber numberWithUnsignedLongLong:_session],
+//                                          @"handle":[NSNumber numberWithUnsignedLongLong:peer.handleID],
+//                                          @"type":@"subcribe",
+//                                          @"room":[NSNumber numberWithUnsignedLongLong:_room],
+//                                          @"data":@{
+//                                                  @"sdp":@{
+//                                                          @"type":@"answer",
+//                                                          @"sdp":sdp.sdp,
+//                                                          }
+//                                                  },
+//                                          };
+//
+//                [_signalingChannel sendMessage:message];
+//
+//            }];
+//
+//        }];
         
     }];
     
@@ -418,20 +437,17 @@ NSString* kWebsocketServerURL = @"ws://3.133.61.58:8188";
 
     
     NSDictionary* message = @{
-                              @"session":[NSNumber numberWithUnsignedLongLong:_session],
-                              @"handle":[NSNumber numberWithUnsignedLongLong:peer.handleID],
-                              @"type":@"ice",
-                              @"room": [NSNumber numberWithUnsignedLongLong:_room],
-                              @"data":@{
-                                      @"candidate":candidate,
-                                      },
+                              @"session_id": [NSNumber numberWithUnsignedLongLong:_signalingChannel.sessionID],
+                              @"handle_id": [NSNumber numberWithUnsignedLongLong:_signalingChannel.handleID],
+                              @"transaction": _signalingChannel.transaction,
+                              @"janus": @"trickle",
+                              @"candidate": candidate,
                               };
-    
+    NSLog(@"Candidate %@", message);
     [_signalingChannel sendMessage:message];
     
     
 }
-
 
 
 -(void)unpublish:(WebRTCPeer*)peer
@@ -475,6 +491,40 @@ NSString* kWebsocketServerURL = @"ws://3.133.61.58:8188";
 {
     NSLog(@"didReceiveMessage %@", data);
     
+    NSString *janus = [data valueForKeyPath: @"janus"];
+    
+    if ([janus isEqualToString:@"event"]) {
+        NSString *eventType = [data valueForKeyPath: @"plugindata.data.result.event"];
+        if ([eventType isEqualToString: @"registered"]) {
+            [self publish:_localPeer];
+        }
+        
+        if ([eventType isEqualToString: @"accepted"]) {
+            
+            NSLog(@"Call Accepted");
+            NSString* sdpStr = [data valueForKeyPath:@"jsep.sdp"];
+            if (sdpStr == NULL) {
+                NSLog(@"SDP String is Null");
+                
+            } else {
+                NSLog(@"SDP String %@", sdpStr);
+                
+                RTCSessionDescription* _sdp = [[RTCSessionDescription alloc]
+                                               initWithType:RTCSdpTypeAnswer sdp:sdpStr];
+                
+                [_localPeer.peerconnection setRemoteDescription:_sdp completionHandler:^(NSError * _Nullable error) {
+                    if (error != nil) {
+                        NSLog(@"setRemoteDescription answer error %@", error);
+                        return;
+                    }
+                    
+                }];
+            }
+            
+        }
+    }
+    
+    
     NSString* type = [data objectForKey:@"type"];
     
     if ([type isEqualToString:@"created"]) {
@@ -495,7 +545,7 @@ NSString* kWebsocketServerURL = @"ws://3.133.61.58:8188";
             [_delegate client:self didJoin:_localPeer.userID];
         }
         
-        [self publish:_localPeer];
+//        [self publish:_localPeer];
         
         _private_id = [data valueForKeyPath:@"data.private_id"];
         

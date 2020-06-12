@@ -54,21 +54,16 @@ static uint64_t  ROOM = 1234;
     
     [self requestAudioAcess:^(BOOL granted) {
         BOOL audioGranted = granted;
-        [self requestVideoAcess:^(BOOL granted) {
-            BOOL videoGranted = granted;
-            if (audioGranted && videoGranted) {
-                _joinButton.hidden = YES;
-                [webrtcClient startLocalMedia];
-                userid = (uint64_t)(arc4random_uniform(100000));
-                [webrtcClient joinRoomWith:ROOM userid:userid];
-            } else {
-                [self toast:@"can not get media access"];
-            }
-        }];
+        if (audioGranted) {
+            _joinButton.hidden = YES;
+            [webrtcClient startLocalMedia];
+            userid = (uint64_t)(arc4random_uniform(100000));
+            [webrtcClient joinRoomWith:ROOM userid:userid];
+        } else {
+            [self toast:@"can not get media access"];
+        }
     }];
-    
 
-    
 }
 
 - (void)didReceiveMemoryWarning {

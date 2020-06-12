@@ -38,6 +38,9 @@ typedef NS_ENUM(NSInteger, WebRTCSignalingState) {
 
 @property(nonatomic,readonly) WebRTCSignalingState state;
 @property(nonatomic,weak) id<WebRTCSignalingDelegate> delegate;
+@property (nonatomic, readonly)NSString *transaction;
+@property long sessionID;
+@property long handleID;
 
 
 -(instancetype) initWithURL:(NSString*)url  delegate:(id<WebRTCSignalingDelegate>)delegate;
